@@ -1,0 +1,224 @@
+# CLAUDE.md
+
+이 파일은 이 저장소에서 작업하는 Claude Code(및 서브에이전트)를 위한 운영 가이드입니다.
+
+## 1. 프로젝트 개요
+
+**프로젝트 수행본부 대시보드** — 56명 규모 조직의 프로젝트별 구성원 투입(allocation)·
+가동률(utilization)·맨먼스(manmonth)·비용을 관리하는 웹 대시보드 애플리케이션입니다.
+
+- 도메인 언어: **한국어** (UI 텍스트, 주석, 커밋 메시지 모두 한국어 우선)
+- 사용자: 본부장/사업관리팀이 인력 운영을 모니터링하고 프로젝트를 생성·검토·승인
+- 데이터 저장: 현재는 백엔드 없이 **localStorage** 기반 (`useDataStore`)
+
+## 2. 기술 스택
+
+| 영역 | 사용 기술 |
+| --- | --- |
+| 프레임워크 | React 18 (`react`, `react-dom`) + TypeScript ~5.6 |
+| 빌드 | Vite 6 (`type: module`) |
+| 스타일 | Tailwind CSS v4(beta), CSS 변수 기반 토큰 (`styles/globals.css`, `styles.css`) |
+| UI 컴포넌트 | shadcn/ui (Radix UI 래퍼, `components/ui/`) |
+| 차트 | Recharts |
+| 애니메이션 | framer-motion |
+| 폼 | react-hook-form |
+| 아이콘 | lucide-react |
+| 토스트 | sonner |
+| 배포 | GitHub Pages(`docs/`), Vercel, Netlify 설정 존재 |
+
+## 3. 아키텍처
+
+```
+main.tsx → App.tsx → AppLayout → ViewRenderer → 각 View 컴포넌트
+```
+
+- **상태/데이터**: `hooks/useDataStore.ts` 가 단일 데이터 저장소. members/projects/
+  allocations/memberManmonths 상태를 보유하고 localStorage에 동기화하며, 파생 데이터
+  (`dashboardStats`, `utilizationData`, `groupUtilization`, `groupSummary`)와 CRUD 함수를
+  반환합니다. 모든 View는 `dataStore` prop으로 이 객체를 전달받습니다.
+- **이벤트 핸들러**: `hooks/useAppHandlers.ts` (뷰 전환, 선택 상태 관리)
+- **라우팅**: 실제 라우터 없이 `currentView` 문자열 스위치(`components/ViewRenderer.tsx`).
+  뷰 이름 상수는 `constants/views.ts` 의 `VIEW_NAMES`.
+- **타입**: 모든 도메인 타입은 `types/index.ts` 에 정의 (`Member`, `Project`,
+  `ProjectAllocation`, `MemberManmonth`, `UtilizationData` 등)
+- **목 데이터**: `data/mockData.ts` (56명 구성원, 그룹별 집계 계산 함수 포함)
+
+### 핵심 도메인 개념
+- **그룹(group)**: `planning | design | publishing | management | executive`
+- **맨먼스(manmonth)**: 1.0 = 한 명의 한 달 풀가동. allocation의 `utilizationRate`(0~100)로 환산
+- **가동률(utilizationRate)**: 구성원/그룹/조직 단위로 집계
+- **프로젝트 상태**: `draft → review → approved → planning → in-progress → completed`(또는 `on-hold`)
+- **투입 상태(allocation.status)**: `active | completed | withdrawn`
+
+## 4. 명령어
+
+```bash
+npm run dev          # 개발 서버 (Vite)
+npm run build        # 프로덕션 빌드
+npm run preview      # 빌드 결과 미리보기
+npm run lint         # ESLint (--max-warnings 0, 경고도 실패 처리)
+npm run lint:fix     # ESLint 자동 수정
+npm run type-check   # tsc --noEmit (타입 검사만)
+npm run deploy-check # 배포 전 점검 스크립트
+```
+
+> 코드 변경 후에는 반드시 `npm run type-check` 와 `npm run lint` 를 통과시켜야 합니다.
+> lint는 `--max-warnings 0` 이므로 **경고도 곧 실패**입니다.
+
+## 5. 작업 규칙 (.claude/rules)
+
+세부 규칙은 `.claude/rules/` 에 있으며 작업 성격에 맞는 규칙을 먼저 읽으세요.
+
+- `frontend.md` — React/TypeScript/컴포넌트 작성 규칙
+- `backend.md` — 데이터 계층/API 설계 규칙(향후 백엔드 도입 대비)
+- `design-system.md` — Tailwind 토큰 · shadcn/ui 사용 규칙
+- `documentation.md` — 문서/주석/커밋 작성 규칙
+- `quality-check.md` — 머지 전 품질 게이트
+- `handoff.md` — 에이전트 간 인수인계 규칙
+
+## 6. 팀 구성 (.claude/agents)
+
+이 프로젝트는 **가상 디지털 에이전시 팀**을 서브에이전트로 모델링합니다. 작업 단계에 맞는
+에이전트를 호출하세요. 전체 워크플로우는 `RFP → 제안 → 전략 → 기획 → 디자인 → 퍼블리싱 →
+개발 → 분석/마케팅` 순서이며, 단계 전환 시 `handoff.md` 규칙을 따릅니다.
+
+| 단계 | 에이전트 | 이름 | 역할 |
+| --- | --- | --- | --- |
+| 영업 | `handojeon-sales-lead` | 한도전 | 영업·평가 팀장, RFP 수주 판단, 제안 전략 |
+| 영업 | `kim-sales-support` | 김영업 | 영업 지원, 고객/시장/경쟁 조사 |
+| 기획 | `jung-wooseon-po` | 정우선 | 제품 책임자(PO), MVP·우선순위 |
+| 기획 | `na-service-planner` | 나기획 | 서비스기획, IA·플로우·화면 정의 |
+| 디자인 | `cha-ui-designer` | 차도안 | 제품 UI·디자인 시스템 |
+| 디자인 | `oh-brand-designer` | 오색감 | BX·브랜드·그래픽 |
+| 퍼블리싱 | `pyo-publisher` | 표준수 | 기본 퍼블리싱(마크업/스타일) |
+| 퍼블리싱 | `lee-interaction-publisher` | 이풍뎅 | 인터랙션·접근성 심화 |
+| 개발 | `baek-backend-developer` | 백연동 | 백엔드(API/DB/인증/보안) |
+| 개발 | `gu-frontend-developer` | 구동민 | 프론트엔드 구현(React) |
+| 분석 | `go-data-analyst` | 고지표 | 데이터 분석·KPI 정의 |
+| 마케팅 | `hong-marketer` | 홍보라 | 마케팅·고객 커뮤니케이션 |
+
+## 7. 핵심 컨벤션 요약
+
+- 새 화면을 추가할 때: `VIEW_NAMES`에 상수 추가 → `ViewRenderer`에 분기 추가 →
+  `components/`에 컴포넌트 생성 → 필요한 데이터는 `dataStore`에서 가져옴.
+- 데이터 변경은 반드시 `useDataStore`의 CRUD 함수를 통해서만. 컴포넌트에서 localStorage를
+  직접 만지지 않습니다.
+- 새 도메인 필드는 먼저 `types/index.ts`에 추가합니다.
+- 색상/간격/폰트는 하드코딩하지 말고 Tailwind 토큰(CSS 변수)을 사용합니다.
+- `any` 사용 자제(ESLint 경고). 부득이하면 사유를 주석으로 남깁니다.
+
+## 8. Wylie AX Office 운영 규칙 (server/ · .claude/agents/leader.md)
+
+이 저장소의 `server/` 는 **Wylie AX Office** — 팀장 에이전트 1명이 재하의 브리핑을 작업으로 나눠 12인
+에이전트에게 메시지로 배정하고, 가상 사무실(`components/VirtualOffice`)이 그 진행을 보여 준다.
+Munder Difflin 식 운영(오케스트레이터 + hive + 사무실 화면)을 와일리 업무용으로 옮긴 것이다(코드는 가져오지 않고 운영 방식만 따른다).
+
+- **브리핑 4요소**: 결과(끝나면 손에 쥘 것) · 맥락 · 제약 · 질문 기준. 결과 줄이 없으면 팀장은 분해하지 않고 되묻는다.
+- **hive(기본 `server/hive/`, `OFFICE_HIVE_DIR`)가 단일 진실**: 작업 원장 `tasks.json`, 승인 큐 `approvals.json`, 메일함 `inbox/outbox`,
+  기억 `memory/`, 현황판 `blackboard.md`, 미확정 `open_items.md`, 이벤트 `events.log`, 대기열 `queue.json`, 질문 `questions.json`,
+  서킷 브레이커 `breakers.json`, 추가 인원 `agents.json`, 설정 `settings.json`, 실시간 기록 `live/`, 예약 `triggers.json`, 사용자 템플릿 `templates.json`,
+  구독 사용 한도 `limits.json`(Claude Code 가 실행마다 알려 주는 rate_limit_event 의 마지막 값). 메모리 상태를 두지 않는다.
+  경로는 `server/paths.mjs` 한 곳에서 정한다(산출물 `OFFICE_DELIVERABLES_DIR`, 화면 `OFFICE_DIST_DIR`).
+- **작업 풀**: 브리핑 안의 작업은 선행이 끝나면 `OFFICE_CONCURRENCY`(기본 2, 최대 3)건까지 동시에 돈다. 같은 담당자는 동시에 돌리지 않고,
+  승인 대기는 그 작업만 멈춘다. `tasks.json`·`approvals.json` 갱신은 `hive.mjs` 의 쓰기 잠금 안에서만 한다.
+- **상태 분리**: 작업 상태(대기·진행·검수·승인대기·완료·보류·실패)와 산출물 판정(미점검·PASS·CONDITIONAL·FAIL)은
+  별도 필드다. 검사 결과는 pass/fail/error/not_run 네 값이며 **돌리지 않은 검사를 통과로 적지 않는다.** 고정 점수는 없다.
+  짧은 형식 요청('3줄' 등) 산출물은 분량 하한·제목 기계 검사를 결과만 남기고 판정에서 뺀다(`server/qa.mjs`).
+- **QA 반려 시 1회 자동 보완**: QA FAIL 이면 같은 담당에게 지적을 붙여 한 번만 다시 실행·판정한다(`settings.json` 의 `auto_revise`, 기본 켜짐). 상한은 원래 그대로,
+  서킷 브레이커 `qa_fail` 은 최종 결과에서만 센다. CLI 없음·로그인 풀림·QA 검토 오류는 보완하지 않는다. 작업 레코드 `revised: 1`.
+- **승인 게이트**: 외부 발송·비용 발생·파일 삭제·범위 변경·인력/금액 수치 확정은 `approvals.json` 에 쌓고 재하가
+  결정할 때까지 멈춘다. 승인·반려는 행위자·사유가 없으면 기록되지 않는다.
+  승인은 요청 때의 산출물에 묶는다(`payload.artifact_hash`, sha256) — 그 뒤 파일이 바뀌었으면 승인을 한 번 거절(409 `artifact_changed`)하고 지문을 새 파일로 바꾼다.
+  승인된 작업은 `approved_hash` 를 남기고, 그 뒤 파일이 바뀌면 `approval_stale`('승인 뒤 바뀜')로 보인다.
+- **모델 호출**: 실사용은 `OFFICE_MODE=claude_code` — 이 PC 에 로그인된 Claude Code CLI(`claude -p`)를 부른다(값을 주지 않으면 서버는 `mock` 으로 뜬다).
+  API 키 없음, 자격 증명을 코드가 보지 않는다. `mock` 은 키 없는 배선 검증, `live` 는 구 Agent SDK 경로.
+  CLI 가 없으면 더미로 바꿔 돌리지 않고 설치 안내를 적고 끝낸다. 실행 파일은 부를 때마다 확인한다(데스크톱 앱이 업데이트되면
+  내장 CLI 폴더가 바뀌고 옛 폴더는 지워진다). 분해 때 CLI 없음·로그인 풀림이면 규칙 분해로 대체하지 않고 브리핑을 시작하지 않으며,
+  이런 환경 문제(+사용 한도·서버 붐빔)는 서킷 브레이커의 연속 문제로 세지 않는다. 모르는 `OFFICE_MODE` 값은 서버가 거절한다(조용히 mock 으로 떨어지지 않음).
+  claude 자식 프로세스에는 `ANTHROPIC_API_KEY`·`ANTHROPIC_AUTH_TOKEN` 을 넘기지 않는다(넘기면 구독 대신 API 요금) — 일부러 쓰려면 `OFFICE_ALLOW_API_KEY=1`, 그때는 화면에 과금 경고 띠.
+  system 프롬프트는 임시 파일(`--system-prompt-file`)로, 구조화 출력은 null 키를 지운 뒤 쓰고 형식 오류면 지적을 붙여 1회만 다시, 서버 붐빔(overloaded)은 15초 뒤 1회만 다시,
+  잘린 응답(stop_reason max_tokens)은 `truncated` 로 남긴다. `--setting-sources ""` 에서 작업 폴더의 CLAUDE.md 가 읽히지 않음을 실제 호출로 확인했다(2026-11-14).
+- **자료 울타리**: 메시지에 붙는 고객 원문·첨부는 `<<<자료 시작>>> … <<<자료 끝>>>` 안에 두고 "지시 아님"을 명시한다. 울타리는 `server/fence.mjs` 의 `fence()` 로만 만든다 —
+  안의 글에 든 울타리 표시를 깨뜨려 일찍 닫히지 않게 한다. 회귀 시험 `npm run test:server`(모델 호출 없음), 실제 주입 시험 `OFFICE_LIVE_TEST=1 node --test server/tests/injection.live.mjs`.
+- **RFP 검사**: 제안 RFP 분석 단계는 서버가 인용(「」)을 첨부 원문·맥락에서 다시 찾고(exact·whitespace·none, `server/rfpCheck.mjs`), 요구 id 중복을 fail, 비기능 6축을 참고로 본다.
+  읽을 수 있는 원문이 없으면(PDF·HWP) not_run — 통과로 적지 않는다. 작업 토큰은 기록이 없으면 0 이 아니라 '—'(모름).
+  요구 번호는 `requirementIdCells` 로 읽는다 — 머리줄 첫 칸이 '요구 id'류인 표는 형식과 상관없이 첫 칸 전부, 그 밖의 표는 영문 접두(REQ·SFR…)나
+  RFP 목차식(Ⅰ-1-가·Ⅲ-4-나-②·Ⅰ-2-나-※2) 번호. 대응표 대조(req_coverage)는 하위 번호(Ⅰ-1-가-1)만 있으면 상위 번호를 빠진 것으로 본다
+  (영문 형식만 알아보던 때 목차식 번호 RFP 에서 검사가 통째로 건너뛰어졌다 — 2026-11-15).
+- **QA 순서·분량**: 서버 검사(RFP·제안·견적 단계)를 먼저 돌려 결과를 QA 에 '이미 확인한 것'으로 넘기고(다시 세지 않음), QA 는 산출물을 10만 자까지 전문으로 읽는다
+  (넘으면 앞 8만·끝 2만 자, `qa.qaExcerpt`). 3만 자가 넘으면 QA 시간 제한 10분. 2만4천 자에서 잘라 장표 구성안 대응표를 끝까지 못 본 일이 있었다.
+- **회신 형식**: 완료 기능 / 실행 방법 / 검증 결과 / 남은 제한 / 기억할 것 (+ 필요할 때만 재하에게 질문). 팀장은 "남은 제한"을 모아 보고서 맨 아래에 그대로 적는다.
+- **팀장 상주 세션·대기열**: 입력창 메시지는 `queue.json` 에 쌓이고 팀장 상주 세션(`claude -p --resume`, hive 읽기 전용)이 한 건씩 처리한다.
+  일을 맡긴 메시지는 팀장이 브리핑으로 정리해 다시 대기열에 넣는다. 브리핑은 한 번에 1건, 나머지는 차례를 기다린다(`server/leaderSession.mjs`).
+- **hive 규칙**: 작업을 시작할 때 담당은 기억 → 재하의 답 → 안 읽은 편지(자료 울타리)를 읽고, 읽은 편지는 `inbox/<담당>/.done/` 으로 옮긴다.
+  회신의 질문은 질문 탭(`questions.json`)에 쌓이고, 답은 행위자가 있어야 기록된다.
+- **사용 토큰·서킷 브레이커**: 사용량은 금액이 아니라 구독 **사용 토큰**으로 센다(`server/tokens.mjs` — 입력 + 캐시 생성 + 출력 + 캐시 읽기÷10, 네 갈래는 원장에 그대로).
+  화면·승인 카드·설정에 $ 를 앞세우지 않는다(API 환산 금액은 모니터 탭 각주의 참고값뿐, 청구 아님). 연속 문제 1회 조정 → 2회 제한(턴·토큰 한도 절반) → 3회 중지,
+  하루 토큰 한도(`agent_daily_tokens`, 기본 120만) 80% 제한·100% 중지. 중지는 재하가 '재개' 승인이나 모니터 탭 초기화(행위자·사유 필수)로만 풀린다.
+  작업당 토큰 한도(`max_task_tokens`, 기본 40만 — 작업의 `cap_tokens` 가 먼저, 기획 ②·③ 은 80만)를 넘으면 앱이 스트림의 토큰을 세다 끊고 '사용량' 승인 카드(승인 시 한도 두 배)를 띄운다.
+  '비용' 승인 종류는 실제 돈이 드는 일(유료 결제·구매)에만 쓴다.
+- **제안서 작성 프로세스**: 결과 줄이 제안서인 브리핑은 팀장 분해 대신 `server/proposal.mjs` 의 최대 10단계(조사·근거표 → RFP 분석·Go/No-Go(승인) → 전략·목차 →
+  [UX 섹션] [KPI] → 견적·인력 투입 계획(승인 '수치확정') ∥ 장표 구성안·대응표 역채움 → 본문(승인된 견적 값만) → [발표본·발표 노트] → 검수(AI 검수))로 나눈다. 담당은 한도전 3단계(RFP·전략·본문)·차도안 2단계(UX 섹션·장표)·고지표 2단계(KPI·검수)·김영업 1단계·정우선 1단계(견적)·홍보라 1단계(발표 노트 — 결과·제약에 발표가 있을 때)로 나눠
+  한 사람이 하루 토큰 한도를 혼자 넘기지 않게 한다. 단계별 스킬은 `tasks.json` 의 `skills` 에 남고 실행기가 우선 쓴다.
+  사내 제안 스킬의 운영 규칙을 일반 절차로 옮겼다: 근거표(EV-nnn, 근거 상태 6종)는 조사부터 만들고 뒤 단계는 이어 쓴다, 장표 단계는 대응표에 장표 id 를 역채우고 견적 승인 전이라 수치는 「확정 필요」로만,
+  견적 단계는 인력 카드·갭 분석, 검수는 'AI 검수' 표기·렌더·시각 not_run('시각 미평가'). 서버가 `server/proposalCheck.mjs` 로 다시 본다 — ev_table·ev_refs·req_coverage·ai_label·sections 는
+  claude_code 에서 판정에 넣고 unconfirmed_numbers·render 는 참고. QA 보완 재작업은 산출물 끝에 변경 기록(CHG-nn) 표를 붙이고 chg_log(참고)로 본다(짧은 형식·기획 화면 제외).
+  사내 스킬이 붙으면 지침 충돌 시 고객사 전용 → 사내 → 공용 순, proposal-maker 는 목차 후보로만(`agentRunner.skillPriorityLines`).
+  통합 스킬 `wylie-proposal-master`(사용자 스킬 폴더, 저장소·설치 파일에 두지 않음)가 이 PC 에 있으면 제안·견적 단계마다 필요한 절만 넣는다 —
+  스펙 `이름#절,절:match|대체`(`skills.mjs` 의 `parseAlt`·`sliceSections`). `:match` 절(건별 이력)은 '###' 제목의 고객사 낱말이 브리핑에 나오는 항목만 넣고
+  (`clientKeys` — 일반 낱말·두 글자 약어 제외), 세션 기록·자료 간 불일치 절은 넣지 않는다. 없으면 예전 개별 사내 스킬·공용 스킬로 대체, 팀장이 골라 붙이는 목록에서는 뺀다(`pick:false`).
+- **견적 프로세스**: 결과 줄이 견적서·인력투입계획(제안서 없이 견적만)인 브리핑은 `ESTIMATE_STEPS` 3단계(범위·가정 → 견적기준표·인력투입계획·인력 카드·견적서(안)·갭 분석 → 견적 검수(AI 검수, 승인 '수치확정')).
+  견적 단계(`task.export: ['xlsx']`)의 마크다운 표는 서버가 엑셀로도 저장한다(`server/xlsxExport.mjs`, 표 하나 = 시트 하나, `task.xlsx`). 방법은 공용 스킬 `proposal-estimate`.
+  사내(`wylie-*` 등)·고객사 전용(`<고객>-…-proposal`) 제안 스킬은 사용자 스킬 폴더에만 두고 이름으로 찾는다(공개 저장소에 두지 않음).
+- **표준 기획 프로세스**: 화면설계 브리핑은 설정의 기획 에이전트 패키지(`plan_kit_dir`, 이 PC 폴더 — 저장소에 두지 않음)가 있으면 `server/planning.mjs` 의 6단계
+  (요구 원장 → 작업가이드·IA(승인 '가이드확정' → 팩 계층 confirmed) → 화면 생성 ×2(서버가 new_screen 뼈대) → 리뷰 → 추적·3키 인계(승인 '컨펌'))로 나눈다.
+  패키지 스크립트는 서버가 돌리고(에이전트는 명령 실행 금지), 화면 생성 QA 에 verify(L01~L13·V01~V08)를 넣는다. 기획 탭·`/plan-files`(CSP sandbox)로 본다.
+  설치 파일에 패키지 사본이 들어간다 — `npm run desktop:build` 가 `desktop/scripts/stage-plan-kit.cjs` 로 빌드한 PC 의 연결된 패키지(또는 `OFFICE_PLAN_KIT_SRC`)에서
+  core·scripts·prompts·packs/_template·.claude·README 만 `desktop/plan-kit/`(gitignore)에 옮기고(프로젝트·데모 팩·맨 위 전략 문서 제외, 절대 경로·출처 문장 일반화),
+  처음 켤 때 `desktop/planKitSeed.cjs` 가 `문서\Clubschool AX Office\기획 에이전트 패키지\wylie-plan-agent` 로 복사해 `plan_kit_dir` 에 연결한다
+  (한 번만 — `plan_kit_seeded`, 이미 연결된 패키지가 있으면 그대로, [끄기] 뒤 다시 연결하지 않음). `fs.cpSync` 는 한글 경로에서 프로세스가 죽어 쓰지 않는다.
+  설정 창은 Python 3 유무(`planning.pythonVersion`)를 보이고 없으면 설치 안내를 띄운다.
+- **문서·제안 스킬 등록부**: `server/skillRegistry.mjs` 에 이 PC 의 문서·제안 스킬(사내·계정 동기화·플러그인 `플러그인:스킬`)을 이름·쓰임새·담당·넣는 방식으로 등록한다(스킬 파일은 저장소에 두지 않음).
+  짧은 지침은 지시문에 본문을 넣고, 긴 지침·스크립트 전제 스킬(docx·pptx·xlsx·pdf)은 '참고 스킬'로 경로만 알려 필요할 때 읽게 한다(스킬 폴더를 --add-dir).
+  표준 절차 단계·작업 글 자동 부착(`auto`)·팀장 분해의 선택(`extra_skills`, 작업당 최대 2개)으로 붙는다. 외부 도구·웹·데이터 연결이 필요한 스킬은 `usable:false`(보이되 붙이지 않음). 스킬 탭에서 본다.
+- **사용량 막대(화면 위)**: `/api/usage/top` — 구독 사용 한도(주간·5시간 창 사용률·재설정 시각, `limits.json`), 오늘 사용 토큰(끝난 작업 + 실행 중), 하루 한도에 가까운 담당,
+  실행 중 작업(live 의 `k:'usage'` 줄, 2만 토큰마다)을 보여 준다. [지금 확인]은 claude_code 모드에서 1분에 한 번 작은 호출로 한도를 새로 받는다(그 사용 토큰도 기록).
+- **Claude 계정**: 설정 창 맨 위 — 이 PC 에 로그인된 계정(메일·플랜·방식·만료)을 이 PC 화면에만 보인다. 로그인은 창 없이 앱 안에서(`server/account.mjs` —
+  보이지 않는 가상 터미널(node-pty)에서 `claude auth login --claudeai`, 로그인 주소를 잡아 화면에 주고, 브라우저에 나온 코드는 설정 창 입력 칸으로 받아 넘긴다. 10분 제한, 브리핑 중에는 막음.
+  로그인 주소·메일은 이 PC 화면에만, 기록·로그에 남기지 않는다. node-pty 가 없을 때만 예전처럼 새 PowerShell 창).
+  로그아웃은 확인·브리핑 없음 조건에서 `claude auth logout`(이 PC 의 claude 명령 로그인도 함께 풀림). 사람마다 자기 PC 에서 자기 Claude 계정으로 로그인하는 구조다.
+  Claude Code 가 없는 PC 는 [Claude Code 설치] — 공식 설치 스크립트(`claude.ai/install.ps1`)를 창 없이 돌려 `%USERPROFILE%\.local\bin` 에 깐다(확인 필수).
+  실행 파일 찾는 순서: `CLAUDE_BIN` → 데스크톱 앱 내장 → `.local\bin\claude.exe` → PATH. 다른 PC 배포 안내는 `desktop/INSTALL.md`.
+  시험은 가짜 claude(`CLAUDE_BIN`, 설치는 `OFFICE_CLI_INSTALL_CMD`)로 한다 — 실제 계정을 로그아웃시키거나 실제 설치를 돌리지 않는다.
+- **시간 제한·이어 하기·다시 실행**: 역할 실행 1건의 시간 제한은 설정 `task_timeout_min`(기본 20분, 5~90) × 작업의 `timeout_factor`(제안 RFP 분석·본문 1.5, 장표·견적 1.25 —
+  `proposal.mjs` 단계의 `timeout`). 지시문은 긴 산출물을 뼈대부터 저장하고 장마다 Edit 로 채우게 한다(한 번의 Write 로 쓰다 끊기면 아무것도 남지 않음 — 2026-11-15 10분 제한에서 RFP 분석이 그렇게 끊김).
+  시간 초과로 끊겼는데 쓴 파일이 있으면 그 파일로 1회 '이어 하기(시간 제한)' 실행(`timeout_continued`, 서킷 브레이커는 최종 결과만). 파일이 없으면 실패.
+  실패 작업 카드의 [다시 실행](`POST /api/tasks/:id/rerun`, `hive.rerunTask`) — 그 작업과 그 때문에 선행 보류된 뒤 작업(직간접)을 대기로 되돌리고(완료·반려 보류는 그대로, `rerun_count`·`resume_note`),
+  같은 브리핑을 `_resume` 으로 대기열에 넣는다 — `runBriefing` 이 저장해 둔 브리핑(`hive.loadBriefing`)으로 같은 과제 폴더·원장에서 분해·첨부 복사 없이 이어 돈다. 브리핑이 돌면 409.
+  목업 시험: `OFFICE_MOCK_TIMEOUT='단계:partial,단계:none'`(첫 실행만 시간 초과 흉내).
+- **작업 초기화**: 작업판 머리의 [초기화](`WorkReset.tsx` → `POST /api/work/reset`, `hive.archiveWork`). 작업판·승인·질문·대기열(복사 후 비움)과 편지함·브리핑 기록·live·현황판·미확정을
+  `hive/_archive/reset-<시각>/` 으로 옮긴다 — **지우지 않는다**. 확인·행위자·사유 필수, 브리핑·대기열이 돌면 409, 에이전트 기억은 고를 때만. 원장 번호(seq)는 남기고(새 작업이 T-0001 로 돌아가지 않게),
+  옮긴 작업의 사용 토큰은 `usage_carry.json` 에 원래 날짜로 남겨 `usageSummary` 가 계속 더한다(초기화로 하루 한도가 풀리지 않게). 팀장 상주 세션 id 를 비워 새로 시작한다.
+  설정·추가 인원·서킷 브레이커·사용 한도·예약·템플릿·events.log·산출물 폴더는 그대로. 보관함 목록 `GET /api/work/archives`(manifest.json).
+- **설정·산출물 위치**: 설정 창에서 산출물 폴더·비용 한도·QA 자동 보완·동시 작업 수(1~3)를 바꾼다. 산출물 폴더는 `server/storage.mjs` 가 쓰기 시험 후
+  `paths.mjs` 의 `DELIVERABLES_DIR`(live binding)를 바꾸고 `settings.json` 의 `deliverables_dir` 에 남긴다. 브리핑 진행 중에는 바꾸지 않고, 예전 폴더 파일은 지우지 않는다.
+  파일 열기(`/api/open`)는 산출물 폴더 안의 문서만, 이 PC 화면에서 온 요청만 받는다.
+- **결정권자 이름**: 설정 창의 `owner_name`·`owner_name_en`(빈 값이면 기본 '재하'/'Jaeha', 한쪽만 적으면 양쪽이 그 이름). 화면·지시문·승인 카드·보고서의 이름은
+  `settings.mjs` 의 `ownerName(settings, lang)` 한 곳에서 받고(조사는 `josa()`), 화면은 `/api/settings` 의 `owner` 를 쓴다(i18n 의 `{owner}` 자동 채움).
+  내부 id(`jaeha`, `inbox/jaeha`, 이벤트 `by`)는 바꾸지 않는다. `.claude/agents/*.md`·공용 스킬은 사람 이름 대신 '결정권자'로 쓰고,
+  실행 때 `ownerLine()` 을 지시문 끝에 붙여 이름을 알려 준다 — 공개 저장소에 개인 이름을 더하지 않는다. 회신의 '<이름>에게 질문' 제목은 이름과 상관없이 읽는다.
+- **인원 추가**: 역할 템플릿 12종(`server/agentTemplates.mjs`, 한·영)으로 최대 6명. 명단은 기본 12인 + `agents.json` 이며 `roster.mjs` 가 합친다.
+- **실시간 기록·터미널**: 역할 실행은 stream-json 으로 돌고 `live/<작업>.jsonl` 에 줄을 남긴다. 대화형 터미널은 node-pty(`server/pty.mjs`)이며
+  상태를 바꾸는 API(설정·대기열·인원·브레이커·터미널)는 이 PC 화면(Origin 127.0.0.1·localhost)에서 온 요청만 받는다.
+- **예약·관계도·폴더 첨부**: 예약(`server/triggers.mjs`, `triggers.json`)은 앱이 켜져 있을 때만 돌고, 꺼져 있던 동안 지난 예약은 실행하지 않고
+  '놓침'으로 남긴다. 실행할 때 제목에 날짜를 붙이고, 같은 제목의 과제 폴더가 있으면 `_2` 를 붙여 덮어쓰지 않는다. 폴더 첨부는 문서만
+  `_inbox/<묶음>/<상대경로>` 로 받고 과제 폴더 `_attachments/` 에 구조를 유지해 복사한다. 관계도는 작업 원장의 `depends_on` 으로 그린다.
+- **언어**: 화면·안내·역할 템플릿은 한국어(기본)·영어 두 벌(`components/VirtualOffice/i18n.ts`·`simText.ts`). 설정은 `settings.json` 의 `lang`,
+  영어면 팀장·에이전트 프롬프트 끝에 영어로 쓰라는 한 줄을 붙인다. 새 화면 문구는 두 사전에 함께 넣는다.
+- `.claude/agents/leader.md` 가 팀장 페르소나, `server/roster.mjs` 가 명단(기본 12인 + 추가 인원)·스킬·산출물 폴더의 단일 원천이다.
+- **설치형 앱**: `desktop/`(Electron) — 앱이 서버를 내부에서 띄우고(127.0.0.1, claude_code) 데이터는 `문서\Clubschool AX Office\hive·산출물`.
+  `npm run desktop:dev` · `npm run desktop:build`(→ `release/`, 커밋 금지). 자세한 내용은 `desktop/README.md`.
+  0.17 한 판만 제품 이름을 Clubschool AX Office(클럽스쿨 로고·'cs' 아이콘)로 바꿨다가, 0.18 에서 이름·로고·아이콘을 Wylie 로 되돌렸다.
+  데이터 폴더는 그때 바꾼 `문서\Clubschool AX Office` 를 그대로 쓴다(`main.cjs` 의 `DATA_NAME`, 0.16 이하의 `문서\Wylie AX Office` 는 처음 켤 때 옮김 — `migrateDataRoot`).
+  앱 식별자 `com.wylie.ax-office` 는 그대로 둔다(바꾸면 업그레이드가 아니라 두 벌 설치). 0.17 을 새로 깐 PC 의 Electron 사용자 폴더(Clubschool 이름)도 이어받는다.
+- **다음 작업**: 3단계(설치형 앱, Munder Difflin 구조)는 저장소 루트의 `AX_OFFICE_작업지시서.md` 를 따른다(1·2·3차 완료). 이 저장소는 공개 저장소이므로 `DELIVERABLES/` 시험 산출물과 `server/hive` 실행 데이터는 커밋하지 않는다.

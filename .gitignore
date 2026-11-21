@@ -1,0 +1,101 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build outputs
+dist/
+build/
+*.local
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Temporary files
+*.tmp
+.cache/
+.vite/
+dist-standalone/
+
+# 사내 전용 스킬 — 공개 저장소에 올리지 않는다(각 PC의 .claude/skills 에만 둔다)
+.claude/skills/wylie-*/
+.claude/skills/ba-agent/
+.claude/skills/proposal-maker/
+# 고객사 전용 제안 스킬('<고객>-…-proposal')과 사용자 스킬 폴더의 제안 스킬은 공개 저장소에 두지 않는다
+.claude/skills/*-proposal/
+.claude/skills/proposal-skills/
+.claude/skills/strategy-proposal-analyzer/
+
+# 고객 첨부 원본(RFP 등) — 업로드 임시함과 과제별 첨부 사본은 커밋하지 않는다
+DELIVERABLES/_inbox/
+DELIVERABLES/**/_attachments/
+
+# Wylie AX Office hive 실행 데이터(server/hive) — 작업 원장·메일함·기억·이벤트
+server/hive/tasks.json
+server/hive/tasks.json.tmp
+server/hive/approvals.json
+server/hive/approvals.json.tmp
+server/hive/briefings/
+server/hive/inbox/
+server/hive/outbox/
+server/hive/memory/
+server/hive/events.log
+server/hive/_archive-*/
+server/hive/office-state.json
+server/hive/office-state.json.tmp
+# 2차 — 대기열·질문·서킷 브레이커·추가 인원·설정·실시간 기록·터미널 페르소나
+server/hive/queue.json
+server/hive/queue.json.tmp
+server/hive/questions.json
+server/hive/questions.json.tmp
+server/hive/breakers.json
+server/hive/breakers.json.tmp
+server/hive/agents.json
+server/hive/agents.json.tmp
+server/hive/settings.json
+server/hive/settings.json.tmp
+server/hive/live/
+server/hive/pty/
+# 3차 — 예약
+server/hive/triggers.json
+server/hive/triggers.json.tmp
+# 4차 — 사용자 브리핑 템플릿
+server/hive/templates.json
+server/hive/templates.json.tmp
+server/office-state.json.tmp
+
+# Wylie AX Office 설치형 앱 — 빌드 결과물(설치 파일)
+release/
+desktop/node_modules/
+# 설치형 앱 아이콘 원본(electron-builder buildResources) — 위의 build/ 무시 규칙에서 뺀다
+!desktop/build/
+
+# 설치 파일에 넣는 기획 에이전트 패키지 사본 — 빌드 때 이 PC 의 패키지에서 만든다(desktop/scripts/stage-plan-kit.cjs). 저장소에 두지 않는다
+desktop/plan-kit/
+
+# Clubschool-Agent — 산출물은 저장소에 두지 않는다(앱이 실행 때 만든다)
+DELIVERABLES/
+PROJECT/
+server/hive/blackboard.md
+server/hive/open_items.md

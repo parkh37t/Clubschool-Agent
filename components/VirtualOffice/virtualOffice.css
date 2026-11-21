@@ -1,0 +1,152 @@
+/* APEX 가상 사무실 — 픽셀 오피스 애니메이션/스프라이트 클래스.
+   명령형 SVG 엔진(officeSimulator.ts)이 classList로 토글하므로 전역 CSS가 필수.
+   키프레임은 전역 충돌을 피하려 apex- 접두사 사용(엔진의 anim 문자열과 일치). */
+
+@keyframes apex-pulse{0%,100%{box-shadow:0 0 0 0 rgba(232,163,61,.35);}50%{box-shadow:0 0 0 6px rgba(232,163,61,0);}}
+@keyframes apex-bob{0%,100%{transform:translateY(0);}50%{transform:translateY(-1px);}}
+@keyframes apex-type{0%,49%{opacity:1;}50%,100%{opacity:.15;}}
+@keyframes apex-flick{0%,100%{opacity:.9;}50%{opacity:.6;}}
+@keyframes apex-breathe{0%,100%{transform:translateY(0);}50%{transform:translateY(.7px);}}
+@keyframes apex-docblink{0%,49%{opacity:1;}50%,100%{opacity:.25;}}
+@keyframes apex-led{0%,40%{opacity:1;}41%,100%{opacity:.2;}}
+@keyframes apex-steam{0%{opacity:.5;transform:translateY(0);}80%{opacity:0;transform:translateY(-6px);}100%{opacity:0;}}
+@keyframes apex-slidein{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:none;}}
+@keyframes apex-onair{0%,60%{opacity:1;}61%,100%{opacity:.25;}}
+@keyframes apex-stepA{0%,49%{transform:translateY(0);}50%,100%{transform:translateY(-1.6px);}}
+@keyframes apex-stepB{0%,49%{transform:translateY(-1.6px);}50%,100%{transform:translateY(0);}}
+@keyframes apex-hl{0%,100%{stroke-opacity:1;}50%{stroke-opacity:.45;}}
+@keyframes apex-tdot{0%,30%{opacity:.2;}31%,60%{opacity:1;}61%,100%{opacity:.2;}}
+
+.apex-door .door-l,.apex-door .door-r,.apex-door .door-u,.apex-door .door-d{transition:transform .35s ease;}
+.apex-door.open .door-l{transform:translateX(-24px);}
+.apex-door.open .door-r{transform:translateX(24px);}
+.apex-door.open .door-u{transform:translateY(-24px);}
+.apex-door.open .door-d{transform:translateY(24px);}
+
+#office text{font-family:inherit;}
+#office .zlabel{font-size:11px;font-weight:800;letter-spacing:.05em;}
+#office .nname{font-size:11.5px;font-weight:800;fill:#F4EEE0;paint-order:stroke;stroke:rgba(20,24,36,.55);stroke-width:2.5px;}
+#office .nrole{font-size:10px;font-weight:600;fill:#C9C2B0;paint-order:stroke;stroke:rgba(20,24,36,.45);stroke-width:2px;}
+#office .btask{font-size:10.5px;font-weight:700;fill:#24291F;}
+#office .roomlabel{font-size:11px;font-weight:800;fill:#E8E2D0;letter-spacing:.06em;}
+
+.desk-sprite .screen{fill:#181D2A;transition:fill .3s ease;}
+.desk-sprite .hand{opacity:0;}
+.desk-sprite .bubble{opacity:0;transition:opacity .25s ease;}
+.desk-sprite .statusdot{fill:#6B7288;}
+.desk-sprite .avatar{opacity:.6;transition:opacity .3s ease;}
+.desk-sprite.working .screen{fill:#7FE3A6;}
+.desk-sprite.working .avatar{opacity:1;}
+.desk-sprite.working .statusdot{fill:#2D8C4E;}
+.desk-sprite.working .bubble{opacity:1;}
+.desk-sprite.waiting .avatar{opacity:.9;}
+.desk-sprite.waiting .statusdot{fill:#E8A33D;}
+.desk-sprite{cursor:pointer;}
+.desk-sprite .deskhl{opacity:0;transition:opacity .2s ease;}
+.desk-sprite.selected .deskhl{opacity:1;}
+.minitalk{opacity:0;transition:opacity .2s ease;}
+.talking .minitalk{opacity:1;}
+.bossdoc{cursor:pointer;}
+
+@media (prefers-reduced-motion: no-preference){
+  .desk-sprite.working .headgrp{animation:apex-bob .7s steps(2) infinite;}
+  .desk-sprite.working .hand{animation:apex-type .35s steps(1) infinite;}
+  .desk-sprite.working .hand.h2{animation-delay:.17s;}
+  .desk-sprite.working .screen{animation:apex-flick 2.2s ease-in-out infinite;}
+  .idlebreathe{animation:apex-breathe 4.5s ease-in-out infinite;}
+  .bossdoc.blink{animation:apex-docblink .9s steps(1) infinite;}
+  .led{animation:apex-led 1.6s steps(1) infinite;}
+  .steam{animation:apex-steam 2.6s ease-in-out infinite;}
+  .onair{animation:apex-onair 1.8s steps(1) infinite;}
+  .walker .legA{animation:apex-stepA .5s steps(1) infinite;}
+  .walker .legB{animation:apex-stepB .5s steps(1) infinite;}
+  .desk-sprite.selected .deskhl{animation:apex-hl 1.6s ease-in-out infinite;}
+  .td0{animation:apex-tdot 1s steps(1) infinite;}
+  .td1{animation:apex-tdot 1s steps(1) infinite;animation-delay:.2s;}
+  .td2{animation:apex-tdot 1s steps(1) infinite;animation-delay:.4s;}
+}
+
+/* 컨트롤 버튼 — hover/active는 CSS로(React 인라인 :hover 불가) */
+.apex-btn{cursor:pointer;font-weight:700;font-size:13.5px;padding:7px 14px;border-radius:8px;font-family:inherit;line-height:1;}
+.apex-btn:active{transform:translateY(1px);}
+.apex-btn--primary{border:1px solid #1F6B3A;background:#2D8C4E;color:#fff;}
+.apex-btn--primary:hover{background:#1F6B3A;}
+.apex-btn--ghost{border:1px solid #DDD6C8;background:#FFFFFF;color:#24291F;}
+.apex-btn--ghost:hover{background:#F7F4EC;}
+.apex-btn--mini{cursor:pointer;margin-top:6px;padding:4px 10px;font-size:12px;border-radius:7px;background:#E8A33D;border:1px solid #A96F15;color:#fff;font-weight:700;font-family:inherit;}
+.apex-btn--approve{cursor:pointer;width:100%;border:1px solid #1F6B3A;background:#2D8C4E;color:#fff;padding:7px 14px;border-radius:8px;font-weight:700;font-size:13.5px;font-family:inherit;}
+.apex-btn--approve:hover{background:#1F6B3A;}
+
+/* ── Wylie AX Office 화면 배치(3단계 1차) — Munder Difflin 구조 ──
+   창 전체를 고정 배치로 쓴다: 상단 바 · [왼쪽 사무실 | 오른쪽 커맨드 센터] · 하단 에이전트 바. 페이지 스크롤 없음. */
+.axo-app{display:flex;flex-direction:column;height:100vh;min-height:620px;box-sizing:border-box;overflow:hidden;background:#EFEAE0;color:#24291F;}
+.axo-top{flex-shrink:0;display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:7px 14px;border-bottom:1px solid #DDD6C8;background:#F7F2E8;}
+.axo-main{flex:1;min-height:0;display:flex;gap:10px;padding:10px 12px 0;}
+.axo-left{flex:1;min-width:0;min-height:0;display:flex;flex-direction:column;gap:6px;}
+.axo-canvas{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;background:#1B1F2E;border:3px solid #2B2340;border-radius:6px;overflow:hidden;}
+.axo-canvas svg{width:100%;height:100%;display:block;}
+/* 가로형 평면도(1440×860) — 남는 높이는 위아래 여백으로, 사무실이 창 폭을 최대한 쓴다 */
+.axo-cc{width:clamp(340px,24vw,420px);flex-shrink:0;min-height:0;display:flex;flex-direction:column;background:#FFFDF8;border:1px solid #DDD6C8;border-radius:6px;overflow:hidden;}
+/* 탭 막대 — 주 탭 다섯(아이콘 위·이름 아래·건수) + 더보기 메뉴 */
+.axo-tabbar{display:flex;align-items:stretch;padding:0 6px;border-bottom:1px solid #E6E0D2;}
+.axo-tabbar-item{flex:1 1 0;min-width:0;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;font:inherit;font-size:11px;font-weight:700;color:#6B675C;background:none;border:none;border-bottom:2px solid transparent;margin-bottom:-1px;padding:7px 2px 6px;cursor:pointer;}
+.axo-tabbar-item:hover{color:#43306B;background:#F7F3FC;}
+.axo-tabbar-item[aria-selected="true"],.axo-tabbar-item[data-active="true"]{color:#43306B;border-bottom-color:#6A4C9C;font-weight:800;}
+.axo-tabbar-item:focus-visible{outline:2px solid #6A4C9C;outline-offset:-2px;border-radius:4px;}
+.axo-tabbar-icon{position:relative;display:inline-flex;}
+.axo-tabbar-badge{position:absolute;top:-6px;left:11px;min-width:15px;padding:0 4px;border-radius:999px;color:#fff;font-size:9.5px;font-weight:800;line-height:15px;text-align:center;box-shadow:0 0 0 2px #FFFDF8;}
+.axo-tabbar-label{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.axo-more{position:relative;flex:1 1 0;min-width:0;display:flex;}
+.axo-more>.axo-tabbar-item{flex:1 1 auto;}
+.axo-more-menu{position:absolute;right:0;top:calc(100% + 4px);z-index:30;min-width:184px;background:#fff;border:1px solid #DDD6C8;border-radius:10px;box-shadow:0 12px 30px rgba(20,24,36,.18);padding:5px;display:flex;flex-direction:column;gap:1px;}
+.axo-more-item{display:flex;align-items:center;gap:9px;font:inherit;font-size:12.5px;font-weight:600;color:#24291F;background:none;border:none;border-radius:6px;padding:7px 9px;cursor:pointer;text-align:left;}
+.axo-more-item:hover,.axo-more-item:focus-visible{background:#F7F3FC;outline:none;}
+.axo-more-item[aria-checked="true"]{background:#EFEAF7;color:#43306B;font-weight:800;}
+.axo-more-count{min-width:16px;padding:0 5px;border-radius:999px;color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center;}
+/* 입력창 — 둥근 상자 안에 입력칸·첨부·도구·보내기(채팅 입력창 방식) */
+.axo-seg{display:inline-flex;background:#F2EFE7;border-radius:999px;padding:2px;}
+.axo-seg button{font:inherit;font-size:11.5px;font-weight:800;border:none;background:none;color:#6B675C;padding:3px 10px;border-radius:999px;cursor:pointer;white-space:nowrap;}
+.axo-seg button[aria-checked="true"]{background:#fff;color:#43306B;box-shadow:0 1px 2px rgba(20,24,36,.16);}
+.axo-seg button:disabled{opacity:.5;cursor:not-allowed;}
+.axo-seg button:focus-visible{outline:2px solid #6A4C9C;outline-offset:1px;}
+.axo-composer{border:1px solid #DDD6C8;border-radius:12px;background:#fff;overflow:hidden;transition:border-color .15s ease,box-shadow .15s ease;}
+.axo-composer:focus-within{border-color:#6A4C9C;box-shadow:0 0 0 3px rgba(106,76,156,.14);}
+.axo-composer[data-drag="true"]{border-style:dashed;border-color:#6A4C9C;background:#F7F3FC;}
+.axo-composer-input{display:block;width:100%;box-sizing:border-box;border:none;outline:none;resize:none;font:inherit;font-size:13px;line-height:1.55;padding:10px 12px 4px;background:transparent;color:#24291F;max-height:168px;overflow-y:auto;}
+.axo-composer-field{display:block;width:100%;box-sizing:border-box;border:none;border-bottom:1px solid #F0EBE0;outline:none;resize:none;font:inherit;font-size:12.5px;line-height:1.5;padding:8px 12px;background:transparent;color:#24291F;max-height:168px;}
+.axo-composer-field:focus{background:#FCFAFF;}
+.axo-composer-input::placeholder,.axo-composer-field::placeholder{color:#A39F93;}
+.axo-composer-bar{display:flex;align-items:center;gap:1px;padding:4px 6px 6px;}
+.axo-icon-btn{display:inline-flex;align-items:center;justify-content:center;width:30px;height:30px;flex-shrink:0;border:none;background:none;border-radius:8px;color:#6B675C;cursor:pointer;}
+.axo-icon-btn:hover:not(:disabled){background:#F2EFE7;color:#43306B;}
+.axo-icon-btn:disabled{opacity:.4;cursor:not-allowed;}
+.axo-icon-btn:focus-visible,.axo-send:focus-visible{outline:2px solid #6A4C9C;outline-offset:1px;}
+.axo-kbd-hint{margin-left:auto;min-width:0;font-size:10.5px;color:#9A968A;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 6px;}
+.axo-send{display:inline-flex;align-items:center;gap:5px;height:32px;padding:0 12px;flex-shrink:0;border-radius:9px;border:none;background:#6A4C9C;color:#fff;font:inherit;font-size:12.5px;font-weight:800;cursor:pointer;}
+.axo-send:hover:not(:disabled){background:#5A3F88;}
+.axo-send:disabled{background:#CFC6DE;cursor:not-allowed;}
+.axo-gates{flex-shrink:0;display:flex;gap:4px;}
+.axo-gate{flex:1;min-width:0;padding:3px 6px 4px;border-radius:4px;border:1px solid #DDD6C8;background:#FFFDF8;}
+.axo-bottom{flex-shrink:0;padding:8px 12px 10px;}
+.axo-bottom--compact{padding:6px 12px 7px;}
+.axo-agents--compact{align-items:center;gap:5px;}
+.axo-chip{display:inline-flex;align-items:center;gap:5px;flex:0 0 auto;padding:2px 9px 2px 3px;border:1px solid #DDD6C8;border-radius:999px;background:#FFFDF8;color:#24291F;font:inherit;font-size:12px;cursor:pointer;}
+.axo-chip:hover{background:#F7F3FC;}
+.axo-chip--add{padding:4px 10px;border-style:dashed;background:#F7F4EC;color:#9A968A;cursor:not-allowed;font-weight:800;}
+.axo-bar-toggle{margin-left:auto;position:sticky;right:0;}
+.axo-agents{display:flex;gap:8px;overflow-x:auto;padding-bottom:2px;}
+.axo-agent{display:flex;align-items:center;gap:7px;flex:0 0 186px;min-width:0;text-align:left;cursor:pointer;padding:7px 9px;border:1px solid #DDD6C8;border-radius:6px;color:#24291F;font:inherit;}
+.axo-agent--add{flex:0 0 150px;justify-content:center;border-style:dashed;background:#F7F4EC;color:#9A968A;cursor:not-allowed;}
+.axo-agent--add-on{cursor:pointer;color:#43306B;border-color:#6A4C9C;background:#F7F3FC;}
+.axo-agent--add-on:hover{background:#EFEAF7;}
+.axo-iconbtn{display:inline-flex;align-items:center;gap:4px;white-space:nowrap;flex-shrink:0;font:inherit;font-size:12px;font-weight:700;cursor:pointer;padding:4px 9px;border-radius:4px;border:1px solid #DDD6C8;background:#FFFFFF;color:#24291F;}
+.axo-iconbtn:hover{background:#F7F4EC;}
+.axo-iconbtn:disabled{opacity:.5;cursor:not-allowed;}
+.axo-iconbtn:disabled:hover{background:#FFFFFF;}
+@media (max-width: 1180px){ .axo-cc{width:360px;} }
+@media (max-width: 880px){
+  .axo-app{height:auto;overflow:visible;}
+  .axo-main{flex-direction:column;}
+  .axo-cc{width:auto;min-height:640px;}
+  .axo-canvas{flex:none;height:auto;aspect-ratio:1440/860;}
+}

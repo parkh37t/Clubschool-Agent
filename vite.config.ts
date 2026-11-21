@@ -1,0 +1,73 @@
+import { defineConfig } from 'vite'
+import react from '@vitejs/plugin-react'
+import path from 'path'
+
+// GitHub Pages 배포를 위한 base path 설정
+const isGitHubPages = process.env.GITHUB_ACTIONS === 'true'
+const repoName = 'clubschool' // 실제 저장소 이름으로 고정
+
+// https://vitejs.dev/config/
+export default defineConfig({
+  // GitHub Pages 배포 시 base path 설정
+  base: isGitHubPages ? `/${repoName}/` : '/',
+  
+  plugins: [react()],
+  
+  resolve: {
+    alias: {
+      '@': path.resolve(__dirname, './src'),
+      '@/components': path.resolve(__dirname, './src/components'),
+      '@/hooks': path.resolve(__dirname, './src/hooks'),
+      '@/data': path.resolve(__dirname, './src/data'),
+      '@/types': path.resolve(__dirname, './src/types'),
+      '@/styles': path.resolve(__dirname, './src/styles'),
+    },
+  },
+
+  build: {
+    target: 'esnext',
+    minify: 'esbuild',
+    sourcemap: false,
+    outDir: 'dist',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['lucide-react'],
+          charts: ['recharts'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
+  
+  server: {
+    port: 3000,
+    open: true,
+    host: true,
+    // 가상 사무실 ↔ 오케스트레이터 서버(server/, 기본 8787) 연결.
+    // 오피스의 상대경로 /office-state.json·/api/* 를 백엔드로 프록시 → 같은 오리진처럼 동작(CORS 불필요).
+    // 백엔드 미기동 시 프록시가 실패해도 오피스는 자체 데모로 폴백한다.
+    proxy: {
+      '/office-state.json': 'http://localhost:8787',
+      '/api': 'http://localhost:8787',
+    },
+  },
+  
+  preview: {
+    port: 4173,
+    open: true,
+    host: true,
+  },
+  
+  optimizeDeps: {
+    include: ['react', 'react-dom', 'lucide-react', 'recharts'],
+  },
+  
+  // GitHub Pages 환경에서 에셋 경로 최적화
+  define: {
+    __IS_GITHUB_PAGES__: isGitHubPages,
+    __BASE_URL__: JSON.stringify(isGitHubPages ? `/${repoName}/` : '/'),
+  },
+})
