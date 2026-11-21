@@ -1,3 +1,10 @@
+# Clubschool-Agent
+
+> Wylie AX Office(웹 화면 · `server/` 로컬 서버 · `desktop/` 설치형 앱) 저장소입니다. `parkh37t/clubschool` 의 `ax-office` 브랜치에서 커밋 기록과 함께 옮겨 왔습니다.
+> 과제 산출물(`DELIVERABLES/`, `PROJECT/`)과 GitHub Pages 빌드 결과(`docs/`)는 옮기지 않았습니다. 앱을 처음 실행하면 `DELIVERABLES/` 는 저절로 만들어집니다.
+
+---
+
 # 프로젝트 관리 대시보드 📊
 
 > 프로젝트별 구성원 투입 현황을 관리하는 현대적인 대시보드 애플리케이션
